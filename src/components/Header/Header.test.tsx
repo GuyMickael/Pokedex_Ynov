@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 
 describe("Header", () => {
   it("affiche une image avec le bon src et la bonne largeur", () => {
-    render(<Header />);
+    render();
 
     // Récupère l’élément <img> dans le DOM
     const img = screen.getByTestId("pokeball-test-img");
@@ -16,4 +16,3 @@ describe("Header", () => {
     expect(img).toHaveAttribute("width", "150px");
   });
 });
-

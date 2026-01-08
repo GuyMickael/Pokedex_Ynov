@@ -19,7 +19,6 @@ export default function NotFound() {
         pt: 2,
       }}
     >
-      <Header />
       <Box
         component="img"
         src="/pikachu.png"

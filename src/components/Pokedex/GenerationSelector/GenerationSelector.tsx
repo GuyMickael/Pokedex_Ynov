@@ -9,7 +9,6 @@ import {
   Container,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import Header from "../../Header/Header";
 
 interface Generation {
   id: number;
@@ -116,7 +115,6 @@ export function GenerationSelector() {
         flexDirection: "column",
       }}
     >
-      <Header />
       <Container
         maxWidth={false}
         sx={{
