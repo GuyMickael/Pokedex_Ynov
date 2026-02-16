@@ -19,7 +19,7 @@ export const store = configureStore({
     getDefaultMiddleware().concat(
       pokemonApi.middleware,
       authApi.middleware,
-      profileApi.middleware
+      profileApi.middleware,
     ), // ← ② ajouter le middleware
 });
 

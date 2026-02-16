@@ -1,173 +1,178 @@
 import { useState, useEffect } from "react";
 import { useRefreshMutation } from "../api/authApi";
 import { useLazyGetProfileQuery } from "../api/profileApi";
+import { jwtDecode } from "jwt-decode";
 import {
   Box,
   Button,
   Typography,
   CircularProgress,
-  TextField,
+  Paper,
+  Divider,
+  Stack,
+  Chip,
 } from "@mui/material";
 
-export function FlowTester() {
-  // 1. Hooks RTK Query pour authApi
-  const [
-    refresh,
-    {
-      isLoading: isRefreshLoading,
-      isError: isRefreshError,
-      error: refreshError,
-      data: refreshData,
-      isSuccess: isRefreshSuccess,
-    },
-  ] = useRefreshMutation();
+// Composant interne pour décoder et afficher proprement un Token
+const TokenDecoder = ({
+  token,
+  label,
+}: {
+  token: string | null;
+  label: string;
+}) => {
+  if (!token) return null;
+  try {
+    const decoded: any = jwtDecode(token);
+    const isExpired = decoded.exp * 1000 < Date.now();
 
-  // 2. Hook RTK Query pour profileApi (lazy)
+    return (
+      <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: "#f8f9fa" }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={1}
+        >
+          <Typography variant="subtitle2" color="primary">
+            {label} (Payload)
+          </Typography>
+          <Chip
+            label={isExpired ? "Expiré" : "Valide"}
+            color={isExpired ? "error" : "success"}
+            size="small"
+          />
+        </Stack>
+        <Box
+          component="pre"
+          sx={{ fontSize: "0.75rem", m: 0, overflow: "auto" }}
+        >
+          {JSON.stringify(decoded, null, 2)}
+        </Box>
+      </Paper>
+    );
+  } catch (e) {
+    return <Typography color="error">Token invalide</Typography>;
+  }
+};
+
+export function FlowTester() {
+  const [refresh, { isLoading: isRefreshLoading }] = useRefreshMutation();
   const [
     triggerProfile,
-    {
-      data: profileData,
-      error: profileError,
-      isFetching: isProfileLoading,
-      isSuccess: isProfileSuccess,
-      isError: isProfileError,
-    },
+    { data: profileData, isFetching: isProfileLoading, error: profileError },
   ] = useLazyGetProfileQuery();
 
-  // 3. États pour afficher tokens stockés
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
-
-  // 4. Synchroniser tokens depuis localStorage
-  const syncTokens = () => {
-    setAccessToken(localStorage.getItem("access_token"));
-    setRefreshToken(localStorage.getItem("refresh_token"));
-  };
 
   useEffect(() => {
-    syncTokens();
-    const id = setInterval(syncTokens, 1000);
+    const sync = () => setAccessToken(localStorage.getItem("access_token"));
+    const id = setInterval(sync, 1000);
     return () => clearInterval(id);
   }, []);
-
-  // 5. Handlers
-
-  const handleGetProfile = () => {
-    triggerProfile();
-  };
-
-  const handleRefresh = async () => {
-    try {
-      await refresh().unwrap();
-      syncTokens();
-    } catch {
-      // Erreur affichée via isRefreshError
-    }
-  };
 
   return (
     <Box
       sx={{
-        maxWidth: 600,
-        mx: "auto",
-        p: 3,
-        border: "1px solid #ccc",
-        borderRadius: 2,
+        p: 4,
+        display: "flex",
+        gap: 4,
+        flexWrap: "wrap",
+        justifyContent: "center",
       }}
     >
-      <Typography variant="h5" gutterBottom>
-        Test JWT / Refresh Flow
-      </Typography>
+      {/* SECTION 1 : ACTIONS CONTROLLER */}
+      <Paper elevation={3} sx={{ p: 3, width: 350, borderRadius: 3 }}>
+        <Typography variant="h6" fontWeight="bold" gutterBottom>
+          🕹️ Control Panel
+        </Typography>
+        <Typography variant="body2" color="text.secondary" mb={3}>
+          Simulez les interactions utilisateur
+        </Typography>
 
-      {/* Affichage des tokens en localStorage */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle1">access_token :</Typography>
-        <TextField
-          fullWidth
-          multiline
-          minRows={2}
-          value={accessToken || "— aucun access_token —"}
-          InputProps={{ readOnly: true }}
-          sx={{ mb: 2 }}
-        />
-        <Typography variant="subtitle1">refresh_token :</Typography>
-        <TextField
-          fullWidth
-          multiline
-          minRows={2}
-          value={refreshToken || "— aucun refresh_token —"}
-          InputProps={{ readOnly: true }}
-        />
-      </Box>
+        <Stack spacing={2}>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={() => triggerProfile()}
+            disabled={isProfileLoading}
+            startIcon={isProfileLoading && <CircularProgress size={16} />}
+          >
+            Appeler /profile
+          </Button>
 
-      {/* Bouton pour GET /profile */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6">Profil Utilisateur</Typography>
-        <Button
-          variant="outlined"
-          onClick={handleGetProfile}
-          disabled={isProfileLoading}
-          sx={{ mb: 1 }}
+          <Button
+            variant="outlined"
+            color="secondary"
+            fullWidth
+            onClick={() => refresh()}
+            disabled={isRefreshLoading}
+            startIcon={isRefreshLoading && <CircularProgress size={16} />}
+          >
+            Forcer Refresh
+          </Button>
+
+          <Button
+            variant="text"
+            color="error"
+            onClick={() => {
+              localStorage.clear();
+              window.location.reload();
+            }}
+          >
+            Clear LocalStorage & Reset
+          </Button>
+        </Stack>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Typography variant="subtitle2" gutterBottom>
+          Dernière réponse API :
+        </Typography>
+        <Box
+          sx={{
+            bgcolor: "#2d2d2d",
+            color: "#61dafb",
+            p: 1.5,
+            borderRadius: 1,
+            fontSize: "0.8rem",
+            minHeight: 60,
+            overflow: "auto",
+          }}
         >
-          {isProfileLoading ? (
-            <CircularProgress size={20} />
+          {profileError ? (
+            <span style={{ color: "#ff8a8a" }}>
+              Erreur: {(profileError as any).status}
+            </span>
+          ) : profileData ? (
+            <>
+              {" "}
+              {profileData.message}
+              <br />
+              Bienvenue {profileData.user?.username}!
+            </>
           ) : (
-            "Charger /profile"
+            "En attente d'action..."
           )}
-        </Button>
-        {isProfileError && (
-          <Typography color="error">
-            {(profileError as any).data?.message || "Erreur /profile."}
-          </Typography>
-        )}
-        {isProfileSuccess && profileData && (
-          <Box component="pre" sx={{ background: "#f0f0f0", p: 1 }}>
-            {JSON.stringify(profileData, null, 2)}
-          </Box>
-        )}
-      </Box>
+        </Box>
+      </Paper>
 
-      {/* Bouton pour POST /refresh */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6">Refresh Token</Typography>
-        <Button
-          variant="outlined"
-          color="secondary"
-          onClick={handleRefresh}
-          disabled={isRefreshLoading}
-          sx={{ mb: 1 }}
+      {/* SECTION 2 : TOKEN MONITORING & DECODING */}
+      <Box sx={{ width: 450 }}>
+        <Typography
+          variant="h6"
+          fontWeight="bold"
+          gutterBottom
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
         >
-          {isRefreshLoading ? (
-            <CircularProgress size={20} />
-          ) : (
-            "Requêter /refresh"
-          )}
-        </Button>
-        {isRefreshError && (
-          <Typography color="error">
-            {(refreshError as any).data?.message || "Erreur /refresh."}
-          </Typography>
-        )}
-        {isRefreshSuccess && refreshData && (
-          <Box>
-            <Typography color="success.main">
-              Nouveau accessToken généré !
-            </Typography>
-            <Box
-              component="pre"
-              sx={{
-                background: "#f0f0f0",
-                p: 1,
-                mt: 1,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
-              }}
-            >
-              {JSON.stringify(refreshData, null, 2)}
-            </Box>
-          </Box>
-        )}
+          🔍 Token Monitor{" "}
+          <Chip label="Live" color="primary" variant="outlined" size="small" />
+        </Typography>
+
+        <TokenDecoder token={accessToken} label="Access Token" />
       </Box>
     </Box>
   );
 }
+
+export default FlowTester;

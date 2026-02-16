@@ -38,6 +38,7 @@ const Header = () => {
     { path: "/generations", label: "Générations", icon: <HomeIcon /> },
     { path: "/pokemons", label: "Pokédex National", icon: <ListIcon /> },
     { path: "/404errorUrl", label: "404", icon: <PersonIcon /> },
+    { path: "/flow", label: "Flow", icon: <PersonIcon /> },
   ];
 
   const isActive = (path: string) => {

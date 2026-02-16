@@ -32,7 +32,6 @@ import {
 import { useGetPokemonQuery } from "../../../api/pokemonApi";
 import { useAppDispatch } from "../../../hooks/useAppDispatch";
 import { useAppSelector } from "../../../hooks/useAppSelector";
-import Header from "../../Header/Header";
 
 // Mapping des types Pokémon vers les couleurs de gradient
 const getTypeColors = (primaryType: string) => {
@@ -80,8 +79,8 @@ export default function PokemonDetailedView() {
 
   /* -------------------- Redux : capture -------------------- */
   const dispatch = useAppDispatch();
-  const capturedIds = useAppSelector((s) => s.pokemon.capturedPokemonIds);
-  const isCaptured = capturedIds.includes(id);
+  const { capturedPokemonIds } = useAppSelector((s) => s.pokemon);
+  const isCaptured = capturedPokemonIds.includes(id);
   const toggleCapture = () =>
     dispatch(isCaptured ? removeCapturedPokemon(id) : addCapturedPokemon(id));
 
@@ -135,8 +134,6 @@ export default function PokemonDetailedView() {
         transition: "background 0.5s ease",
       }}
     >
-      <Header />
-
       <Container maxWidth="lg" sx={{ py: 4, mt: 8 }}>
         <Paper
           elevation={24}

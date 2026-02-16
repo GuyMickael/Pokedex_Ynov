@@ -18,7 +18,7 @@ import {
   useGetAllPokemonsQuery,
   useGetGenQuery,
 } from "../../../api/pokemonApi";
-import Header from "../../Header/Header";
+import styles from "./test.module.css";
 
 export function PokemonList() {
   const [page, setPage] = useState(0);
@@ -30,7 +30,7 @@ export function PokemonList() {
   const generation = generationId ? parseInt(generationId) : 2; // Default to gen 2
 
   const pokemonCapturedIds = useAppSelector(
-    (state) => state.pokemon.capturedPokemonIds
+    (state) => state.pokemon.capturedPokemonIds,
   );
   const {
     data: allPokemons = [],
@@ -68,7 +68,7 @@ export function PokemonList() {
 
   return (
     <Box p={2} position="relative" pt={4}>
-      <Header />
+      <div className={`${styles.test} ${styles.test2}`}></div>
       <Grid container spacing={2}>
         {currentPokemons.map((poke) => (
           <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>

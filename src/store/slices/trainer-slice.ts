@@ -9,7 +9,7 @@ const initialState: TrainerCapturedState = {
 };
 
 const trainerSlice = createSlice({
-  name: "pokemon",
+  name: "trainer",
   initialState,
   reducers: {
     // Pas besoin de return dans les reducers (On peut faire des "mutations" grâce à 'immer')

@@ -8,7 +8,7 @@ export const pokemonApi = createApi({
 
   endpoints: (builder) => ({
     getGen: builder.query<IPokemonData[], number | void>({
-      query: (gen = 2) => `gen/${gen}`,
+      query: (gen) => `gen/${gen}`,
       providesTags: () => ["PokemonGen"], // Tag pour la mise à jour de la liste
     }),
 

@@ -1,10 +1,14 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: "http://localhost:3000", // ← ton serveur Express
+  baseUrl: "http://localhost:3000",
+  credentials: "include",
   prepareHeaders: (headers) => {
-    const token = localStorage.getItem("jwt_token");
-    if (token) headers.set("authorization", `Bearer ${token}`);
+    // On récupère l'access_token (le jeton court)
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
     return headers;
   },
 });
@@ -13,69 +17,43 @@ export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery,
   endpoints: (builder) => ({
-    /** POST /login → { token: "jwt..." } */
-    login: builder.mutation<
-      {
-        accessToken: string;
-        refreshToken: string;
-        expiresIn: number;
-        refreshExpiresIn: number;
-      },
-      { username: string; password: string }
-    >({
-      query: (body) => ({
+    login: builder.mutation({
+      query: (credentials) => ({
         url: "/login",
         method: "POST",
-        body,
-        headers: { "Content-Type": "application/json" },
+        body: credentials,
       }),
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          // stocker les deux tokens :
+          // On ne stocke QUE l'accessToken.
+          // Le refreshToken est géré par le cookie via le navigateur.
           localStorage.setItem("access_token", data.accessToken);
-          localStorage.setItem("refresh_token", data.refreshToken);
-          // facultatif : on peut aussi noter les expirations si besoin
-          localStorage.setItem("access_expires_in", data.expiresIn.toString());
-          localStorage.setItem(
-            "refresh_expires_in",
-            data.refreshExpiresIn.toString()
-          );
-        } catch {
-          // gérer l’erreur si on veut
+        } catch (err) {
+          console.error("Erreur de login", err);
         }
       },
     }),
 
-    /** POST /refresh → { accessToken: "...", expiresIn: 20 } */
-    refresh: builder.mutation<{ accessToken: string; expiresIn: number }, void>(
-      {
-        query: () => {
-          const refreshToken = localStorage.getItem("refresh_token");
-          return {
-            url: "/refresh",
-            method: "POST",
-            body: { refreshToken },
-            headers: { "Content-Type": "application/json" },
-          };
-        },
-        async onQueryStarted(_, { queryFulfilled }) {
-          try {
-            const { data } = await queryFulfilled;
-            // Remplacer l’ancien accessToken
-            localStorage.setItem("access_token", data.accessToken);
-            localStorage.setItem(
-              "access_expires_in",
-              data.expiresIn.toString()
-            );
-          } catch {
-            // Si le refresh échoue (token invalide/expiré), on peut router vers la page de login
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-          }
-        },
-      }
-    ),
+    refresh: builder.mutation({
+      query: () => ({
+        url: "/refresh",
+        method: "POST",
+        // Pas besoin de body ou de headers manuels ici !
+        // Le navigateur enverra le cookie refreshToken tout seul grâce à credentials: "include"
+      }),
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          localStorage.setItem("access_token", data.accessToken);
+        } catch (err) {
+          // Si le refresh échoue, on nettoie tout
+          console.log(err);
+          localStorage.removeItem("access_token");
+          window.location.href = "/login";
+        }
+      },
+    }),
   }),
 });
 
